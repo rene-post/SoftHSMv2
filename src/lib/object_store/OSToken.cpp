@@ -92,7 +92,7 @@ OSToken::OSToken(const std::string tokenPath)
 	}
 
 	// Set the initial attributes
-	CK_ULONG flags = 
+	CK_ULONG flags =
 		CKF_RNG |
 		CKF_LOGIN_REQUIRED | // FIXME: check
 		CKF_RESTORE_KEY_NOT_NEEDED |
@@ -105,8 +105,8 @@ OSToken::OSToken(const std::string tokenPath)
 	OSAttribute tokenFlags(flags);
 
 	if (!tokenObject.setAttribute(CKA_OS_TOKENLABEL, tokenLabel) ||
-	    !tokenObject.setAttribute(CKA_OS_TOKENSERIAL, tokenSerial) ||
-	    !tokenObject.setAttribute(CKA_OS_TOKENFLAGS, tokenFlags))
+		!tokenObject.setAttribute(CKA_OS_TOKENSERIAL, tokenSerial) ||
+		!tokenObject.setAttribute(CKA_OS_TOKENFLAGS, tokenFlags))
 	{
 		baseDir.remove(tokenDir + OS_PATHSEP + "tokenObject");
 		baseDir.remove(tokenDir);
@@ -147,7 +147,7 @@ bool OSToken::setSOPIN(const ByteString& soPINBlob)
 	CK_ULONG flags;
 
 	if (tokenObject->setAttribute(CKA_OS_SOPIN, soPIN) &&
-	    getTokenFlags(flags))
+		getTokenFlags(flags))
 	{
 		flags &= ~CKF_SO_PIN_COUNT_LOW;
 		flags &= ~CKF_SO_PIN_FINAL_TRY;
@@ -192,7 +192,7 @@ bool OSToken::setUserPIN(ByteString userPINBlob)
 	CK_ULONG flags;
 
 	if (tokenObject->setAttribute(CKA_OS_USERPIN, userPIN) &&
-	    getTokenFlags(flags))
+		getTokenFlags(flags))
 	{
 		flags |= CKF_USER_PIN_INITIALIZED;
 		flags &= ~CKF_USER_PIN_COUNT_LOW;
@@ -319,18 +319,18 @@ std::set<ObjectFile*> OSToken::getObjects()
 	// the object list when we return it
 	MutexLocker lock(tokenMutex);
 
-    return objects;
+	return objects;
 }
 
 void OSToken::getObjects(std::set<OSObject*> &objects)
 {
-    index();
+	index();
 
-    // Make sure that no other thread is in the process of changing
-    // the object list when we return it
-    MutexLocker lock(tokenMutex);
+	// Make sure that no other thread is in the process of changing
+	// the object list when we return it
+	MutexLocker lock(tokenMutex);
 
-    objects.insert(this->objects.begin(),this->objects.end());
+	objects.insert(this->objects.begin(),this->objects.end());
 }
 
 // Create a new object
@@ -426,7 +426,7 @@ bool OSToken::clearToken()
 
 	// First, clear out all objects
 	objects.clear();
-	
+
 	// Now, delete all files in the token directory
 	if (!tokenDir->refresh())
 	{
