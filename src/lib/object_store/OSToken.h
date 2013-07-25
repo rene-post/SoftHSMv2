@@ -84,8 +84,8 @@ public:
 	// Retrieve objects
 	std::set<ObjectFile*> getObjects();
 
-    // Insert objects into the given set
-    void getObjects(std::set<OSObject*> &objects);
+	// Insert objects into the given set
+	void getObjects(std::set<OSObject*> &objects);
 
 	// Create a new object
 	ObjectFile* createObject();
