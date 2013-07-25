@@ -57,9 +57,6 @@ public:
 	// Create a new token
 	static OSToken* createToken(const std::string basePath, const std::string tokenDir, const ByteString& label, const ByteString& serial);
 
-	// Constructor for new tokens
-	OSToken(const std::string tokenPath, const ByteString& label, const ByteString& serialNumber);
-
 	// Set the SO PIN
 	bool setSOPIN(const ByteString& soPINBlob);
 
