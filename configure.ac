@@ -64,7 +64,6 @@ AC_ARG_WITH(
 )
 
 # If the user want to have the migration tool
-# Requires SQLite3
 AC_ARG_WITH(migrate,
 	AC_HELP_STRING([--with-migrate],
 		[Build the migration tool. Requires SQLite3.]
@@ -75,12 +74,14 @@ AC_ARG_WITH(migrate,
 AC_MSG_CHECKING(if building with softhsm-migrate)
 if test "x${build_migrate}" = "xyes"; then
 	AC_MSG_RESULT(yes)
-	ACX_SQLITE3
 	ACX_YIELD
 else
 	AC_MSG_RESULT(no)
 fi
 AM_CONDITIONAL([BUILD_MIGRATE], [test "x${build_migrate}" = "xyes"])
+
+# Requires SQLite3
+ACX_SQLITE3
 
 # Check for libraries
 ACX_DLOPEN
