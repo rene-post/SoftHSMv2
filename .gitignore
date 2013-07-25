@@ -36,3 +36,4 @@ test-driver
 *.so
 *.so.*
 *.dylib
+/Makefile.am.user
