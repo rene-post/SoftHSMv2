@@ -50,9 +50,15 @@
 #include <list>
 #include <stdio.h>
 
+#include <sqlite3.h>
+
 // Constructor
 OSToken::OSToken(const std::string tokenPath)
 {
+
+
+
+
 	tokenDir = new Directory(tokenPath);
 	tokenObject = new ObjectFile(this, tokenPath + OS_PATHSEP + "tokenObject");
 	sync = IPCSignal::create(tokenPath);
