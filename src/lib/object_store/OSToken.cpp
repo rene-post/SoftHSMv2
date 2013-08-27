@@ -53,12 +53,9 @@
 #include <sqlite3.h>
 
 // Constructor
-OSToken::OSToken(const std::string tokenPath)
+OSToken::OSToken(const std::string basePath, const std::string tokenName)
 {
-
-
-
-
+	std::string tokenPath = basePath + OS_PATHSEP + tokenName;
 	tokenDir = new Directory(tokenPath);
 	tokenObject = new ObjectFile(this, tokenPath + OS_PATHSEP + "tokenObject");
 	sync = IPCSignal::create(tokenPath);
@@ -72,7 +69,7 @@ OSToken::OSToken(const std::string tokenPath)
 }
 
 // Create a new token
-/*static*/ OSToken* OSToken::createToken(const std::string basePath, const std::string tokenDir, const ByteString& label, const ByteString& serial)
+/*static*/ OSToken* OSToken::createToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial)
 {
 	Directory baseDir(basePath);
 
@@ -82,17 +79,17 @@ OSToken::OSToken(const std::string tokenPath)
 	}
 
 	// Create the token directory
-	if (!baseDir.mkdir(tokenDir))
+	if (!baseDir.mkdir(tokenName))
 	{
 		return NULL;
 	}
 
 	// Create the token object
-	ObjectFile tokenObject(NULL, basePath + OS_PATHSEP + tokenDir + OS_PATHSEP + "tokenObject", true);
+	ObjectFile tokenObject(NULL, basePath + OS_PATHSEP + tokenName + OS_PATHSEP + "tokenObject", true);
 
 	if (!tokenObject.isValid())
 	{
-		baseDir.remove(tokenDir);
+		baseDir.remove(tokenName);
 
 		return NULL;
 	}
@@ -114,15 +111,15 @@ OSToken::OSToken(const std::string tokenPath)
 		!tokenObject.setAttribute(CKA_OS_TOKENSERIAL, tokenSerial) ||
 		!tokenObject.setAttribute(CKA_OS_TOKENFLAGS, tokenFlags))
 	{
-		baseDir.remove(tokenDir + OS_PATHSEP + "tokenObject");
-		baseDir.remove(tokenDir);
+		baseDir.remove(tokenName + OS_PATHSEP + "tokenObject");
+		baseDir.remove(tokenName);
 
 		return NULL;
 	}
 
-	DEBUG_MSG("Created new token %s", tokenDir.c_str());
+	DEBUG_MSG("Created new token %s", tokenName.c_str());
 
-	return new OSToken(basePath + OS_PATHSEP + tokenDir);
+	return new OSToken(basePath,tokenName);
 }
 
 // Destructor

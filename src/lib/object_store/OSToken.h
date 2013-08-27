@@ -52,10 +52,10 @@ class OSToken
 {
 public:
 	// Constructor
-	OSToken(const std::string tokenPath);
+	OSToken(const std::string basePath, const std::string tokenName);
 
 	// Create a new token
-	static OSToken* createToken(const std::string basePath, const std::string tokenDir, const ByteString& label, const ByteString& serial);
+	static OSToken* createToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial);
 
 	// Set the SO PIN
 	bool setSOPIN(const ByteString& soPINBlob);

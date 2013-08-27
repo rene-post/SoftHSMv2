@@ -89,13 +89,13 @@ void OSTokenTests::testNewToken()
 	delete newToken;
 
 	// Now reopen the newly created token
-	OSToken reopenedToken("./testdir/newToken");
+	OSToken reopenedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(reopenedToken.isValid());
 
 	// Retrieve the flags, user PIN and so PIN
 	ByteString retrievedSOPIN, retrievedUserPIN;
-	
+
 	CPPUNIT_ASSERT(reopenedToken.getSOPIN(retrievedSOPIN));
 	CPPUNIT_ASSERT(reopenedToken.getUserPIN(retrievedUserPIN));
 	CPPUNIT_ASSERT(reopenedToken.getTokenFlags(flags));
@@ -149,14 +149,14 @@ void OSTokenTests::testExistingToken()
 	}
 
 	// Now open the token
-	OSToken existingToken("./testdir/existingToken");
+	OSToken existingToken("./testdir","existingToken");
 
 	CPPUNIT_ASSERT(existingToken.isValid());
 
 	// Retrieve SO PIN, user PIN, label, serial number and flags
 	ByteString retrievedSOPIN, retrievedUserPIN, retrievedLabel, retrievedSerial;
 	CK_ULONG flags;
-	
+
 	CPPUNIT_ASSERT(existingToken.getSOPIN(retrievedSOPIN));
 	CPPUNIT_ASSERT(existingToken.getUserPIN(retrievedUserPIN));
 	CPPUNIT_ASSERT(existingToken.getTokenLabel(retrievedLabel));
@@ -206,7 +206,7 @@ void OSTokenTests::testExistingToken()
 
 void OSTokenTests::testNonExistentToken()
 {
-	OSToken doesntExist("./testdir/doesntExist");
+	OSToken doesntExist("./testdir","doesntExist");
 
 	CPPUNIT_ASSERT(!doesntExist.isValid());
 }
@@ -226,7 +226,7 @@ void OSTokenTests::testCreateDeleteObjects()
 	CPPUNIT_ASSERT(testToken->isValid());
 
 	// Open the same token
-	OSToken sameToken("./testdir/testToken");
+	OSToken sameToken("./testdir","testToken");
 
 	CPPUNIT_ASSERT(sameToken.isValid());
 
@@ -415,13 +415,13 @@ void OSTokenTests::testClearToken()
 	delete newToken;
 
 	// Now reopen the newly created token
-	OSToken reopenedToken("./testdir/newToken");
+	OSToken reopenedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(reopenedToken.isValid());
 
 	// Retrieve the flags, user PIN and so PIN
 	ByteString retrievedSOPIN, retrievedUserPIN;
-	
+
 	CPPUNIT_ASSERT(reopenedToken.getSOPIN(retrievedSOPIN));
 	CPPUNIT_ASSERT(reopenedToken.getUserPIN(retrievedUserPIN));
 	CPPUNIT_ASSERT(reopenedToken.getTokenFlags(flags));
@@ -435,7 +435,7 @@ void OSTokenTests::testClearToken()
 	CPPUNIT_ASSERT(!reopenedToken.isValid());
 
 	// Try to open it once more
-	OSToken clearedToken("./testdir/newToken");
+	OSToken clearedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(!clearedToken.isValid());
 }
