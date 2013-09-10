@@ -25,85 +25,85 @@
  */
 
 /*****************************************************************************
- Token.h
+ DBToken.h
 
- This class represents a single PKCS #11 token
+ The token class; a token is stored in a directory containing several files.
+ Each object is stored in a separate file and a token object is present that
+ has the token specific attributes
  *****************************************************************************/
 
-#ifndef _SOFTHSM_V2_TOKEN_H
-#define _SOFTHSM_V2_TOKEN_H
+#ifndef _SOFTHSM_V2_DBTOKEN_H
+#define _SOFTHSM_V2_DBTOKEN_H
 
 #include "config.h"
-#include "ByteString.h"
-#include "ObjectStore.h"
+#include "OSAttribute.h"
+#include "OSObject.h"
 #include "OSToken.h"
-#include "SecureDataManager.h"
+#include "Directory.h"
+#include "UUID.h"
+#include "IPCSignal.h"
+#include "MutexFactory.h"
 #include "cryptoki.h"
 #include <string>
-#include <vector>
+#include <set>
+#include <map>
+#include <list>
 
-class Token
+class DBToken : public OSToken
 {
-public:
+private:
 	// Constructor
-	Token();
-	Token(OSToken* token);
+	DBToken(const std::string basePath, const std::string tokenName);
 
-	// Destructor
-	virtual ~Token();
+	// Set the SO PIN
+	bool setSOPIN(const ByteString& soPINBlob);
 
-	// Create a new token
-	CK_RV createToken(ObjectStore* objectStore, ByteString& soPIN, CK_UTF8CHAR_PTR label);
+	// Get the SO PIN
+	bool getSOPIN(ByteString& soPINBlob);
 
-	// Is the token valid?
-	bool isValid();
+	// Set the user PIN
+	bool setUserPIN(ByteString userPINBlob);
 
-	// Is the token initialized?
-	bool isInitialized();
+	// Get the user PIN
+	bool getUserPIN(ByteString& userPINBlob);
 
-	// Is SO or user logged in?
-	bool isSOLoggedIn();
-	bool isUserLoggedIn();
+	// Get the token flags
+	bool getTokenFlags(CK_ULONG& flags);
 
-	// Login
-	CK_RV loginSO(ByteString& pin);
-	CK_RV loginUser(ByteString& pin);
+	// Set the token flags
+	bool setTokenFlags(const CK_ULONG flags);
 
-	// Logout any user on this token;
-	void logout();
+	// Retrieve the token label
+	bool getTokenLabel(ByteString& label);
 
-	// Change PIN
-	CK_RV setSOPIN(ByteString& oldPIN, ByteString& newPIN);
-	CK_RV setUserPIN(ByteString& oldPIN, ByteString& newPIN);
-	CK_RV initUserPIN(ByteString& pin);
+	// Retrieve the token serial
+	bool getTokenSerial(ByteString& serial);
 
-	// Retrieve token information for the token
-	CK_RV getTokenInfo(CK_TOKEN_INFO_PTR info);
+	// Retrieve objects
+	std::set<OSObject*> getObjects();
 
-	// Create object
+	// Insert objects into the given set
+	void getObjects(std::set<OSObject*> &objects);
+
+	// Create a new object
 	OSObject* createObject();
 
-	// Insert all token objects into the given set.
-	void getObjects(std::set<OSObject *> &objects);
+	// Delete an object
+	bool deleteObject(OSObject* object);
 
-	// Decrypt the supplied data
-	bool decrypt(const ByteString& encrypted, ByteString& plaintext);
+	// Destructor
+	virtual ~DBToken();
 
-	// Encrypt the supplied data
-	bool encrypt(const ByteString& plaintext, ByteString& encrypted);
+	// Checks if the token is consistent
+	bool isValid();
 
-private:
-	// Token validity
-	bool valid;
+	// Invalidate the token (for instance if it is deleted)
+	void invalidate();
 
-	// A reference to the object store token
-	OSToken* token;
+	// Delete the token
+	bool clearToken();
 
-	// The secure data manager for this token
-	SecureDataManager* sdm;
-
-	Mutex* tokenMutex;
 };
 
-#endif // !_SOFTHSM_V2_TOKEN_H
+#endif // !_SOFTHSM_V2_DBTOKEN_H
 

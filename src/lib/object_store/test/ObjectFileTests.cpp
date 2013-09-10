@@ -60,7 +60,7 @@ void ObjectFileTests::testBoolAttr()
 {
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -85,7 +85,7 @@ void ObjectFileTests::testBoolAttr()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -122,7 +122,7 @@ void ObjectFileTests::testULongAttr()
 {
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -147,7 +147,7 @@ void ObjectFileTests::testULongAttr()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -189,7 +189,7 @@ void ObjectFileTests::testByteStrAttr()
 
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -208,7 +208,7 @@ void ObjectFileTests::testByteStrAttr()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -246,7 +246,7 @@ void ObjectFileTests::testMixedAttr()
 
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -264,7 +264,7 @@ void ObjectFileTests::testMixedAttr()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -290,7 +290,7 @@ void ObjectFileTests::testDoubleAttr()
 
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -308,7 +308,7 @@ void ObjectFileTests::testDoubleAttr()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -351,7 +351,7 @@ void ObjectFileTests::testDoubleAttr()
 
 	// Now re-read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -380,7 +380,7 @@ void ObjectFileTests::testRefresh()
 
 	// Create the test object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject", true);
+		ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -398,7 +398,7 @@ void ObjectFileTests::testRefresh()
 
 	// Now read back the object
 	{
-		ObjectFile testObject(NULL, "testdir/testobject");
+		ObjectFile testObject(NULL, "testdir", "testobject");
 
 		CPPUNIT_ASSERT(testObject.isValid());
 
@@ -439,7 +439,7 @@ void ObjectFileTests::testRefresh()
 		CPPUNIT_ASSERT(testObject.getAttribute(CKA_VALUE_BITS)->getByteStringValue() == value3a);
 
 		// Open the object a second time
-		ObjectFile testObject2(NULL, "testdir/testobject");
+		ObjectFile testObject2(NULL, "testdir", "testobject");
 
 		// Check the attributes on the second instance
 		CPPUNIT_ASSERT(testObject2.getAttribute(CKA_TOKEN)->isBooleanAttribute());
@@ -456,7 +456,7 @@ void ObjectFileTests::testRefresh()
 		OSAttribute attr4(id);
 
 		CPPUNIT_ASSERT(testObject.setAttribute(CKA_ID, attr4));
-		
+
 		// Check the attribute
 		CPPUNIT_ASSERT(testObject2.attributeExists(CKA_ID));
 		CPPUNIT_ASSERT(testObject2.getAttribute(CKA_ID)->isByteStringAttribute());
@@ -488,7 +488,7 @@ void ObjectFileTests::testCorruptFile()
 {
 	CPPUNIT_ASSERT(system("dd if=/dev/urandom of=testdir/testobject bs=13 count=24") != -1);
 
-	ObjectFile testObject(NULL, "testdir/testobject");
+	ObjectFile testObject(NULL, "testdir", "testobject");
 
 	CPPUNIT_ASSERT(!testObject.isValid());
 }
@@ -496,7 +496,7 @@ void ObjectFileTests::testCorruptFile()
 void ObjectFileTests::testTransactions()
 {
 	// Create test object instance
-	ObjectFile testObject(NULL, "testdir/testobject", true);
+	ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 	CPPUNIT_ASSERT(testObject.isValid());
 
@@ -513,7 +513,7 @@ void ObjectFileTests::testTransactions()
 	CPPUNIT_ASSERT(testObject.setAttribute(CKA_VALUE_BITS, attr3));
 
 	// Create secondary instance for the same object
-	ObjectFile testObject2(NULL, "testdir/testobject");
+	ObjectFile testObject2(NULL, "testdir", "testobject");
 
 	CPPUNIT_ASSERT(testObject2.isValid());
 
@@ -623,7 +623,7 @@ void ObjectFileTests::testTransactions()
 void ObjectFileTests::testDestroyObjectFails()
 {
 	// Create test object instance
-	ObjectFile testObject(NULL, "testdir/testobject", true);
+	ObjectFile testObject(NULL, "testdir", "testobject", true);
 
 	CPPUNIT_ASSERT(testObject.isValid());
 

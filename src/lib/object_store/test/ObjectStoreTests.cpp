@@ -36,7 +36,6 @@
 #include "ObjectStoreTests.h"
 #include "ObjectStore.h"
 #include "OSToken.h"
-#include "ObjectFile.h"
 #include "File.h"
 #include "Directory.h"
 #include "OSAttribute.h"
@@ -216,7 +215,7 @@ void ObjectStoreTests::testDeleteToken()
 	CPPUNIT_ASSERT(retrieveToken_->getTokenSerial(retrieveSerial_));
 
 	CPPUNIT_ASSERT(((retrieveLabel_ == label1) && (retrieveSerial_ == serial1)) ||
-	               ((retrieveLabel_ == label2) && (retrieveSerial_ == serial2)));
+				   ((retrieveLabel_ == label2) && (retrieveSerial_ == serial2)));
 
 	// Now add a new token
 	ByteString label3 = "DEADC0FFEEBEEF";
@@ -242,7 +241,7 @@ void ObjectStoreTests::testDeleteToken()
 
 	CPPUNIT_ASSERT((retrieveLabel1 == label3) || (retrieveLabel2 == label3));
 	CPPUNIT_ASSERT(((retrieveLabel1 == label1) && (retrieveLabel2 != label2)) ||
-	               ((retrieveLabel1 == label2) && (retrieveLabel2 != label1)));
+				   ((retrieveLabel1 == label2) && (retrieveLabel2 != label1)));
 	CPPUNIT_ASSERT(retrieveLabel1 != retrieveLabel2);
 }
 

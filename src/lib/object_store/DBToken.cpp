@@ -25,79 +25,120 @@
  */
 
 /*****************************************************************************
- OSToken.h
+ DBToken.cpp
 
  The token class; a token is stored in a directory containing several files.
  Each object is stored in a separate file and a token object is present that
  has the token specific attributes
  *****************************************************************************/
 
-#ifndef _SOFTHSM_V2_OSTOKEN_H
-#define _SOFTHSM_V2_OSTOKEN_H
-
 #include "config.h"
-#include "ByteString.h"
+#include "log.h"
+#include "OSAttributes.h"
 #include "OSAttribute.h"
+#include "ObjectFile.h"
+#include "Directory.h"
+#include "UUID.h"
+#include "IPCSignal.h"
 #include "cryptoki.h"
-#include "OSObject.h"
-
+#include "DBToken.h"
+#include "OSPathSep.h"
+#include <vector>
 #include <string>
 #include <set>
+#include <map>
+#include <list>
+#include <stdio.h>
 
-class OSToken
+#include <sqlite3.h>
+
+// Constructor
+DBToken::DBToken(const std::string basePath, const std::string tokenName)
 {
-public:
-	// Create a new token
-	static OSToken* createToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial);
-	static OSToken* accessToken(const std::string basePath, const std::string tokenName);
+}
 
-	// Destructor
-	virtual ~OSToken();
+// Destructor
+DBToken::~DBToken()
+{
+}
 
-	// Set the SO PIN
-	virtual bool setSOPIN(const ByteString& soPINBlob) = 0;
+// Set the SO PIN
+bool DBToken::setSOPIN(const ByteString& soPINBlob)
+{
+	return false;
+}
 
-	// Get the SO PIN
-	virtual bool getSOPIN(ByteString& soPINBlob) = 0;
+// Get the SO PIN
+bool DBToken::getSOPIN(ByteString& soPINBlob)
+{
+	return false;
+}
 
-	// Set the user PIN
-	virtual bool setUserPIN(ByteString userPINBlob) = 0;
+// Set the user PIN
+bool DBToken::setUserPIN(ByteString userPINBlob)
+{
+	return false;
+}
 
-	// Get the user PIN
-	virtual bool getUserPIN(ByteString& userPINBlob) = 0;
+// Get the user PIN
+bool DBToken::getUserPIN(ByteString& userPINBlob)
+{
+	return false;
+}
 
-	// Get the token flags
-	virtual bool getTokenFlags(CK_ULONG& flags) = 0;
+// Retrieve the token label
+bool DBToken::getTokenLabel(ByteString& label)
+{
+	return false;
+}
 
-	// Set the token flags
-	virtual bool setTokenFlags(const CK_ULONG flags) = 0;
+// Retrieve the token serial
+bool DBToken::getTokenSerial(ByteString& serial)
+{
+	return false;
+}
 
-	// Retrieve the token label
-	virtual bool getTokenLabel(ByteString& label) = 0;
+// Get the token flags
+bool DBToken::getTokenFlags(CK_ULONG& flags)
+{
+	return false;
+}
 
-	// Retrieve the token serial
-	virtual bool getTokenSerial(ByteString& serial) = 0;
+// Set the token flags
+bool DBToken::setTokenFlags(const CK_ULONG flags)
+{
+	return false;
+}
 
-	// Retrieve objects
-	virtual std::set<OSObject*> getObjects() = 0;
+// Retrieve objects
+std::set<OSObject *> DBToken::getObjects()
+{
+	return std::set<OSObject *>();
+}
 
-	// Insert objects into the given set
-	virtual void getObjects(std::set<OSObject*> &objects) = 0;
+void DBToken::getObjects(std::set<OSObject*> &objects)
+{
+}
 
-	// Create a new object
-	virtual OSObject* createObject() = 0;
+// Create a new object
+OSObject *DBToken::createObject()
+{
+	return NULL;
+}
 
-	// Delete an object
-	virtual bool deleteObject(OSObject* object) = 0;
+// Checks if the token is consistent
+bool DBToken::isValid()
+{
+	return false;
+}
 
-	// Checks if the token is consistent
-	virtual bool isValid() = 0;
+// Invalidate the token (for instance if it is deleted)
+void DBToken::invalidate()
+{
+}
 
-	// Invalidate the token (for instance if it is deleted)
-	virtual void invalidate() = 0;
-
-	// Delete the token
-	virtual bool clearToken() = 0;
-};
-
-#endif // !_SOFTHSM_V2_OSTOKEN_H
+// Delete the token
+bool DBToken::clearToken()
+{
+	return false;
+}

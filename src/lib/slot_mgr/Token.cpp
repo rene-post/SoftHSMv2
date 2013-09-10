@@ -33,6 +33,7 @@
 #include "SecureDataManager.h"
 
 #include <sys/time.h>
+#include <cstdio>
 
 // Constructor
 Token::Token()
@@ -479,7 +480,7 @@ CK_RV Token::getTokenInfo(CK_TOKEN_INFO_PTR info)
 }
 
 // Create an object
-ObjectFile* Token::createObject()
+OSObject *Token::createObject()
 {
 	return token->createObject();
 }

@@ -66,7 +66,7 @@ ObjectStore::ObjectStore(std::string storePath)
 	for (std::vector<std::string>::iterator i = dirs.begin(); i != dirs.end(); i++)
 	{
 		// Create a token instance
-		OSToken* token = new OSToken(storePath,*i);
+		OSToken* token = OSToken::accessToken(storePath,*i);
 
 		if (!token->isValid())
 		{

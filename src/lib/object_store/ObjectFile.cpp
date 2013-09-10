@@ -33,6 +33,7 @@
 #include "config.h"
 #include "ObjectFile.h"
 #include "OSToken.h"
+#include "FileToken.h"
 #include "OSPathSep.h"
 #include <unistd.h>
 #include <sys/types.h>
@@ -44,10 +45,10 @@
 #define BYTESTR_ATTR			0x3
 
 // Constructor
-ObjectFile::ObjectFile(OSToken* parent, std::string path, bool isNew /* = false */)
+ObjectFile::ObjectFile(OSToken* parent, const std::string path, const std::string filename, bool isNew /* = false */)
 {
-	this->path = path;
-	ipcSignal = IPCSignal::create(path);
+	this->path = path + OS_PATHSEP + filename;
+	ipcSignal = IPCSignal::create(this->path);
 	objectMutex = MutexFactory::i()->getMutex();
 	valid = (ipcSignal != NULL) && (objectMutex != NULL);
 	token = parent;
@@ -58,13 +59,13 @@ ObjectFile::ObjectFile(OSToken* parent, std::string path, bool isNew /* = false 
 
 	if (!isNew)
 	{
-		DEBUG_MSG("Opened existing object %s", path.c_str());
+		DEBUG_MSG("Opened existing object %s", this->path.c_str());
 
 		refresh(true);
 	}
 	else
 	{
-		DEBUG_MSG("Created new object %s", path.c_str());
+		DEBUG_MSG("Created new object %s", this->path.c_str());
 
 		// Create an empty object file
 		store();
@@ -164,7 +165,8 @@ void ObjectFile::refresh(bool isFirstTime /* = false */)
 	if (!isFirstTime && (token != NULL))
 	{
 		// This may cause this instance to become invalid
-		token->index();
+		FileToken *fileToken = static_cast<FileToken*>(token);
+		fileToken->index();
 	}
 
 	// Check the IPC signal
@@ -212,7 +214,7 @@ void ObjectFile::refresh(bool isFirstTime /* = false */)
 
 			return;
 		}
-			
+
 		if (!objectFile.readULong(osAttrType))
 		{
 			DEBUG_MSG("Corrupt object file %s", path.c_str());
@@ -260,7 +262,7 @@ void ObjectFile::refresh(bool isFirstTime /* = false */)
 			{
 				delete attributes[p11AttrType];
 			}
-			
+
 			attributes[p11AttrType] = new OSAttribute(value);
 		}
 		else if (osAttrType == BYTESTR_ATTR)
@@ -280,7 +282,7 @@ void ObjectFile::refresh(bool isFirstTime /* = false */)
 			{
 				delete attributes[p11AttrType];
 			}
-			
+
 			attributes[p11AttrType] = new OSAttribute(value);
 		}
 		else
@@ -443,7 +445,7 @@ void ObjectFile::discardAttributes()
 std::string ObjectFile::getFilename() const
 {
 	if ((path.find_last_of(OS_PATHSEP) != std::string::npos) &&
-	    (path.find_last_of(OS_PATHSEP) < path.size()))
+		(path.find_last_of(OS_PATHSEP) < path.size()))
 	{
 		return path.substr(path.find_last_of(OS_PATHSEP) + 1);
 	}
@@ -494,7 +496,7 @@ bool ObjectFile::commitTransaction()
 		{
 			return false;
 		}
-	
+
 		// Unlock the file; theoretically, this can mean that another instance
 		// of SoftHSM now gets the lock and writes back attributes that will be
 		// overwritten when this transaction is committed. The chances of this
@@ -502,19 +504,19 @@ bool ObjectFile::commitTransaction()
 		if (transactionLockFile == NULL)
 		{
 			ERROR_MSG("Transaction lock file instance invalid!");
-	
+
 			return false;
 		}
-	
+
 		transactionLockFile->unlock();
-	
+
 		delete transactionLockFile;
 		transactionLockFile = NULL;
 		inTransaction = false;
 	}
 
 	store();
-	
+
 	return true;
 }
 

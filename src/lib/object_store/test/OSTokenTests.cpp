@@ -35,11 +35,12 @@
 #include <cppunit/extensions/HelperMacros.h>
 #include "OSTokenTests.h"
 #include "OSToken.h"
-#include "ObjectFile.h"
 #include "File.h"
 #include "Directory.h"
 #include "OSAttribute.h"
 #include "OSAttributes.h"
+#include "ObjectFile.h"
+#include "FileToken.h"
 #include "cryptoki.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(OSTokenTests);
@@ -68,6 +69,8 @@ void OSTokenTests::testNewToken()
 
 	CPPUNIT_ASSERT(newToken != NULL);
 
+	CPPUNIT_ASSERT(newToken->isValid());
+
 	// Check the flags
 	CK_ULONG flags;
 	CPPUNIT_ASSERT(newToken->getTokenFlags(flags));
@@ -75,7 +78,7 @@ void OSTokenTests::testNewToken()
 
 	// Set the SO PIN
 	ByteString soPIN = "3132333435363738"; // 12345678
-	
+
 	CPPUNIT_ASSERT(newToken->setSOPIN(soPIN));
 
 	// Set the user PIN
@@ -89,7 +92,7 @@ void OSTokenTests::testNewToken()
 	delete newToken;
 
 	// Now reopen the newly created token
-	OSToken reopenedToken("./testdir","newToken");
+	FileToken reopenedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(reopenedToken.isValid());
 
@@ -120,7 +123,7 @@ void OSTokenTests::testExistingToken()
 		CPPUNIT_ASSERT(!system("mkdir testdir/existingToken"));
 
 		// Create the token object
-		ObjectFile tokenObject(NULL, "./testdir/existingToken/tokenObject", true);
+		ObjectFile tokenObject(NULL, "./testdir/existingToken", "tokenObject", true);
 
 		OSAttribute labelAtt(label);
 		CPPUNIT_ASSERT(tokenObject.setAttribute(CKA_OS_TOKENLABEL, labelAtt));
@@ -131,13 +134,13 @@ void OSTokenTests::testExistingToken()
 		OSAttribute userPINAtt(userPIN);
 		CPPUNIT_ASSERT(tokenObject.setAttribute(CKA_OS_USERPIN, userPINAtt));
 		CK_ULONG flags = CKF_RNG | CKF_LOGIN_REQUIRED | CKF_RESTORE_KEY_NOT_NEEDED | CKF_TOKEN_INITIALIZED;
- 		OSAttribute flagsAtt(flags);
+		OSAttribute flagsAtt(flags);
 		CPPUNIT_ASSERT(tokenObject.setAttribute(CKA_OS_TOKENFLAGS, flagsAtt));
 
 		// Create 3 objects
-		ObjectFile obj1(NULL, "./testdir/existingToken/1.object", true);
-		ObjectFile obj2(NULL, "./testdir/existingToken/2.object", true);
-		ObjectFile obj3(NULL, "./testdir/existingToken/3.object", true);
+		ObjectFile obj1(NULL, "./testdir/existingToken", "1.object", true);
+		ObjectFile obj2(NULL, "./testdir/existingToken", "2.object", true);
+		ObjectFile obj3(NULL, "./testdir/existingToken", "3.object", true);
 
 		OSAttribute id1Att(id1);
 		OSAttribute id2Att(id2);
@@ -149,7 +152,7 @@ void OSTokenTests::testExistingToken()
 	}
 
 	// Now open the token
-	OSToken existingToken("./testdir","existingToken");
+	FileToken existingToken("./testdir","existingToken");
 
 	CPPUNIT_ASSERT(existingToken.isValid());
 
@@ -174,9 +177,9 @@ void OSTokenTests::testExistingToken()
 
 	// Check that all the tokens are presented
 	bool present[3] = { false, false, false };
-	std::set<ObjectFile*> objects = existingToken.getObjects();
+	std::set<OSObject*> objects = existingToken.getObjects();
 
-	for (std::set<ObjectFile*>::iterator i = objects.begin(); i != objects.end(); i++)
+	for (std::set<OSObject*>::iterator i = objects.begin(); i != objects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -206,7 +209,7 @@ void OSTokenTests::testExistingToken()
 
 void OSTokenTests::testNonExistentToken()
 {
-	OSToken doesntExist("./testdir","doesntExist");
+	FileToken doesntExist("./testdir","doesntExist");
 
 	CPPUNIT_ASSERT(!doesntExist.isValid());
 }
@@ -226,16 +229,16 @@ void OSTokenTests::testCreateDeleteObjects()
 	CPPUNIT_ASSERT(testToken->isValid());
 
 	// Open the same token
-	OSToken sameToken("./testdir","testToken");
+	FileToken sameToken("./testdir","testToken");
 
 	CPPUNIT_ASSERT(sameToken.isValid());
 
 	// Create 3 objects on the token
-	ObjectFile* obj1 = testToken->createObject();
+	OSObject* obj1 = testToken->createObject();
 	CPPUNIT_ASSERT(obj1 != NULL);
-	ObjectFile* obj2 = testToken->createObject();
+	OSObject* obj2 = testToken->createObject();
 	CPPUNIT_ASSERT(obj2 != NULL);
-	ObjectFile* obj3 = testToken->createObject();
+	OSObject* obj3 = testToken->createObject();
 	CPPUNIT_ASSERT(obj3 != NULL);
 
 	// Now set the IDs of the 3 objects
@@ -247,10 +250,10 @@ void OSTokenTests::testCreateDeleteObjects()
 	CPPUNIT_ASSERT(testToken->getObjects().size() == 3);
 
 	// Check that all three objects are distinct and present
-	std::set<ObjectFile*> objects = testToken->getObjects();
+	std::set<OSObject*> objects = testToken->getObjects();
 	bool present1[3] = { false, false, false };
 
-	for (std::set<ObjectFile*>::iterator i = objects.begin(); i != objects.end(); i++)
+	for (std::set<OSObject*>::iterator i = objects.begin(); i != objects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -274,12 +277,12 @@ void OSTokenTests::testCreateDeleteObjects()
 	}
 
 	// Now check that the same objects are present in the other instance of the same token
-	std::set<ObjectFile*> otherObjects = sameToken.getObjects();
+	std::set<OSObject*> otherObjects = sameToken.getObjects();
 	CPPUNIT_ASSERT(otherObjects.size() == 3);
 
 	bool present2[3] = { false, false, false };
 
-	for (std::set<ObjectFile*>::iterator i = otherObjects.begin(); i != otherObjects.end(); i++)
+	for (std::set<OSObject*>::iterator i = otherObjects.begin(); i != otherObjects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -303,7 +306,7 @@ void OSTokenTests::testCreateDeleteObjects()
 	}
 
 	// Now delete the second object
-	for (std::set<ObjectFile*>::iterator i = objects.begin(); i != objects.end(); i++)
+	for (std::set<OSObject*>::iterator i = objects.begin(); i != objects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -325,7 +328,7 @@ void OSTokenTests::testCreateDeleteObjects()
 	objects = testToken->getObjects();
 	bool present3[2] = { false, false };
 
-	for (std::set<ObjectFile*>::iterator i = objects.begin(); i != objects.end(); i++)
+	for (std::set<OSObject*>::iterator i = objects.begin(); i != objects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -348,14 +351,14 @@ void OSTokenTests::testCreateDeleteObjects()
 	{
 		CPPUNIT_ASSERT(present3[j] == true);
 	}
-	
+
 	// Now check the other instance
 	CPPUNIT_ASSERT(sameToken.getObjects().size() == 2);
 
 	otherObjects = sameToken.getObjects();
 	bool present4[2] = { false, false };
 
-	for (std::set<ObjectFile*>::iterator i = otherObjects.begin(); i != otherObjects.end(); i++)
+	for (std::set<OSObject*>::iterator i = otherObjects.begin(); i != otherObjects.end(); i++)
 	{
 		ByteString retrievedId;
 
@@ -378,7 +381,7 @@ void OSTokenTests::testCreateDeleteObjects()
 	{
 		CPPUNIT_ASSERT(present4[j] == true);
 	}
-	
+
 
 	// Release the test token
 	delete testToken;
@@ -401,7 +404,7 @@ void OSTokenTests::testClearToken()
 
 	// Set the SO PIN
 	ByteString soPIN = "3132333435363738"; // 12345678
-	
+
 	CPPUNIT_ASSERT(newToken->setSOPIN(soPIN));
 
 	// Set the user PIN
@@ -415,7 +418,7 @@ void OSTokenTests::testClearToken()
 	delete newToken;
 
 	// Now reopen the newly created token
-	OSToken reopenedToken("./testdir","newToken");
+	FileToken reopenedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(reopenedToken.isValid());
 
@@ -435,7 +438,7 @@ void OSTokenTests::testClearToken()
 	CPPUNIT_ASSERT(!reopenedToken.isValid());
 
 	// Try to open it once more
-	OSToken clearedToken("./testdir","newToken");
+	FileToken clearedToken("./testdir","newToken");
 
 	CPPUNIT_ASSERT(!clearedToken.isValid());
 }
