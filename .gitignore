@@ -1,7 +1,6 @@
 # Automake, autoconf, libtool
 Makefile
 Makefile.in
-core
 acinclude.m4
 aclocal.m4
 autom4te.cache
