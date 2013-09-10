@@ -88,8 +88,8 @@ public:
 	bool bindText(int index, const char *value, int n, void(*destruct)(void*));
 	bool bindZeroBlob(int index, int n);
 
-	bool firstRow();
-	bool nextRow(bool *done = NULL);
+	bool reset();
+	bool step(bool *done);
 private:
 	_Statement *_statement;
 };
@@ -119,6 +119,9 @@ public:
 	const char *getString(unsigned int fieldidx);
 	const unsigned char *getBinary(unsigned int fieldidx);
 	size_t getFieldLength(unsigned int fieldidx);
+
+	bool firstRow();
+	bool nextRow();
 private:
 	Statement _statement;
 };

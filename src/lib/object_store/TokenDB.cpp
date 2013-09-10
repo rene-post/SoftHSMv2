@@ -29,7 +29,7 @@
 
  Specifies classes to access the Token Database
  *****************************************************************************/
-#define HAVE_SQL_TRACE 1
+#define HAVE_SQL_TRACE 0
 
 #include <cstdlib>
 #include <cstdio>
@@ -40,12 +40,16 @@
 
 static void xTrace(void*,const char*zSql)
 {
-	std::cout << std::endl << zSql << std::endl;
+	std::cout << std::endl << zSql ; //<< std::endl;
 }
 
 // Call once at process startup
 void TokenDB::initialize()
 {
+	if (!sqlite3_threadsafe()) {
+		TokenDB::logError("initialize: sqlite3 compiled with multi-threading support disabled.");
+		return;
+	}
 	sqlite3_initialize();
 }
 
@@ -55,14 +59,14 @@ void TokenDB::shutdown()
 	sqlite3_shutdown();
 }
 
-static int static_vprintf(const char *format, va_list ap)
+static int static_vprintf_err(const char *format, va_list ap)
 {
-	int rv = vprintf(format,ap);
-	printf("\n");
+	int rv = vfprintf(stderr,format,ap);
+	fprintf(stderr,"\n");
 	return rv;
 }
 
-static TokenDB::LogErrorHandler static_LogErrorhandler = static_vprintf;
+static TokenDB::LogErrorHandler static_LogErrorhandler = static_vprintf_err;
 
 void TokenDB::logError(const std::string &format, ...)
 {
@@ -81,11 +85,11 @@ void TokenDB::setLogErrorHandler(TokenDB::LogErrorHandler handler)
 
 void TokenDB::resetLogErrorHandler()
 {
-	static_LogErrorhandler = static_vprintf;
+	static_LogErrorhandler = static_vprintf_err;
 }
 
 
-static void reportError(sqlite3 *db)
+static void reportErrorDB(sqlite3 *db)
 {
 	if (!db) {
 		TokenDB::logError("sqlite3 pointer is NULL");
@@ -112,7 +116,7 @@ static void reportError(sqlite3_stmt *stmt)
 		TokenDB::logError("sqlite3_statement pointer is NULL");
 		return;
 	}
-	reportError(sqlite3_db_handle(stmt));
+	reportErrorDB(sqlite3_db_handle(stmt));
 }
 
 static time_t sqlite3_gmtime(struct tm *tm)
@@ -247,34 +251,54 @@ int TokenDB::Statement::refcount()
 
 bool TokenDB::Statement::bindBlob(int index, const void *value, int n, void(*destruct)(void*))
 {
-#if 0
-	int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
-#endif
-	return false;
+	if (!isValid()) {
+		TokenDB::logError("Statement::bindBlob: statement is not valid");
+		return false;
+	}
+	if (sqlite3_bind_blob(_statement->_stmt, index, value, n, destruct) != SQLITE_OK) {
+		reportError(_statement->_stmt);
+		return false;
+	}
+	return true;
 }
 
 bool TokenDB::Statement::bindDouble(int index, double value)
 {
-#if 0
-	int sqlite3_bind_double(sqlite3_stmt*, int, double);
-#endif
-	return false;
+	if (!isValid()) {
+		TokenDB::logError("Statement::bindDouble: statement is not valid");
+		return false;
+	}
+	if (sqlite3_bind_double(_statement->_stmt, index, value) != SQLITE_OK) {
+		reportError(_statement->_stmt);
+		return false;
+	}
+	return true;
 }
 
 bool TokenDB::Statement::bindInt(int index, int value)
 {
-#if 0
-	int sqlite3_bind_int(sqlite3_stmt*, int, int);
-#endif
-	return false;
+	if (!isValid()) {
+		TokenDB::logError("Statement::bindInt: statement is not valid");
+		return false;
+	}
+	if (sqlite3_bind_int(_statement->_stmt, index, value) != SQLITE_OK) {
+		reportError(_statement->_stmt);
+		return false;
+	}
+	return true;
 }
 
 bool TokenDB::Statement::bindInt64(int index, long long value)
 {
-#if 0
-	int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
-#endif
-	return false;
+	if (!isValid()) {
+		TokenDB::logError("Statement::bindInt64: statement is not valid");
+		return false;
+	}
+	if (sqlite3_bind_int64(_statement->_stmt, index, value) != SQLITE_OK) {
+		reportError(_statement->_stmt);
+		return false;
+	}
+	return true;
 }
 
 bool TokenDB::Statement::bindNull(int index)
@@ -287,10 +311,15 @@ bool TokenDB::Statement::bindNull(int index)
 
 bool TokenDB::Statement::bindText(int index, const char *value, int n, void (*destruct)(void *))
 {
-#if 0
-	int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
-#endif
-	return false;
+	if (!isValid()) {
+		TokenDB::logError("Statement::bindText: statement is not valid");
+		return false;
+	}
+	if (sqlite3_bind_text(_statement->_stmt, index, value, n, destruct) != SQLITE_OK) {
+		reportError(_statement->_stmt);
+		return false;
+	}
+	return true;
 }
 
 bool TokenDB::Statement::bindZeroBlob(int index, int n)
@@ -301,48 +330,48 @@ bool TokenDB::Statement::bindZeroBlob(int index, int n)
 	return false;
 }
 
-bool TokenDB::Statement::firstRow()
+bool TokenDB::Statement::reset()
 {
 	if (!isValid()) {
-		logError("Statement::firstRow: statement is not valid");
+		TokenDB::logError("Statement::reset: statement is not valid");
 		return false;
 	}
-
-	// reset result set, check for errors and select the first row.
-	if (sqlite3_reset(_statement->_stmt)!=SQLITE_OK || sqlite3_step(_statement->_stmt)!=SQLITE_ROW)
+	if (sqlite3_reset(_statement->_stmt) != SQLITE_OK) {
+		reportError(_statement->_stmt);
 		return false;
-
-#if 0
-	// collect the field names from the result set and set them up for access.
-	fields.clear();
-	for (int i=0; i<sqlite3_data_count(stmt); ++i) {
-		// offset field index with 1 to allow 0 to be invalid index.
-		fields[sqlite3_column_name(stmt, i)] = 1+i;
 	}
-#endif
-
 	return true;
 }
 
-bool TokenDB::Statement::nextRow(bool *done)
+bool TokenDB::Statement::step(bool *done)
 {
+	/*
+	return	done
+	false	false	error
+	false	true	done
+	true	false	row
+	true	true	impossible!
+	*/
 	if (!isValid()) {
-		logError("Statement::nextRow: statement is not valid");
-		if (done) *done = true;
+		TokenDB::logError("Statement::step: statement is not valid");
+		if (done) *done = false; // error!
 		return false;
 	}
 
 	int rv = sqlite3_step(_statement->_stmt);
 	if (rv != SQLITE_ROW && rv != SQLITE_DONE) {
 		reportError(_statement->_stmt);
+		if (done) *done = false; // error !
 		return false;
 	}
 	if (done) {
 		*done =  (rv == SQLITE_DONE);
 	}
+#if 0
 #if HAVE_SQL_TRACE
-	if (rv == SQLITE_ROW) logError("SQLITE_ROW");
-	if (rv == SQLITE_DONE) logError("SQLITE_DONE");
+	if (rv == SQLITE_ROW) printf("SQLITE_ROW\n");
+	if (rv == SQLITE_DONE) printf("SQLITE_DONE\n");
+#endif
 #endif
 	return (rv == SQLITE_ROW);
 }
@@ -392,7 +421,7 @@ unsigned int TokenDB::Result::getField(const std::string &fieldname)
 bool TokenDB::Result::fieldIsNull(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::fieldIsNull: statement is not valid");
+		TokenDB::logError("Result::fieldIsNull: statement is not valid");
 		return true;
 	}
 	if (fieldidx == 0) {
@@ -406,7 +435,7 @@ bool TokenDB::Result::fieldIsNull(unsigned int fieldidx)
 time_t TokenDB::Result::getDatetime(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getDatetime: statement is not valid");
+		TokenDB::logError("Result::getDatetime: statement is not valid");
 		return ((time_t)-1);
 	}
 	if (fieldidx == 0) {
@@ -475,7 +504,7 @@ time_t TokenDB::Result::getDatetime(unsigned int fieldidx)
 unsigned char TokenDB::Result::getUChar(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getUChar: statement is not valid");
+		TokenDB::logError("Result::getUChar: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -490,7 +519,7 @@ unsigned char TokenDB::Result::getUChar(unsigned int fieldidx)
 float TokenDB::Result::getFloat(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getFloat: statement is not valid");
+		TokenDB::logError("Result::getFloat: statement is not valid");
 		return 0.0f;
 	}
 	if (fieldidx == 0) {
@@ -505,7 +534,7 @@ float TokenDB::Result::getFloat(unsigned int fieldidx)
 double TokenDB::Result::getDouble(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getDouble: statement is not valid");
+		TokenDB::logError("Result::getDouble: statement is not valid");
 		return 0.0;
 	}
 	if (fieldidx == 0) {
@@ -520,7 +549,7 @@ double TokenDB::Result::getDouble(unsigned int fieldidx)
 int TokenDB::Result::getInt(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getInt: statement is not valid");
+		TokenDB::logError("Result::getInt: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -535,7 +564,7 @@ int TokenDB::Result::getInt(unsigned int fieldidx)
 long long TokenDB::Result::getLongLong(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getLongLong: statement is not valid");
+		TokenDB::logError("Result::getLongLong: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -550,7 +579,7 @@ long long TokenDB::Result::getLongLong(unsigned int fieldidx)
 unsigned long long TokenDB::Result::getULongLong(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getULongLong: statement is not valid");
+		TokenDB::logError("Result::getULongLong: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -565,7 +594,7 @@ unsigned long long TokenDB::Result::getULongLong(unsigned int fieldidx)
 unsigned int TokenDB::Result::getUInt(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getUInt: statement is not valid");
+		TokenDB::logError("Result::getUInt: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -580,7 +609,7 @@ unsigned int TokenDB::Result::getUInt(unsigned int fieldidx)
 const char *TokenDB::Result::getString(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getString: statement is not valid");
+		TokenDB::logError("Result::getString: statement is not valid");
 		return NULL;
 	}
 	if (fieldidx == 0) {
@@ -595,7 +624,7 @@ const char *TokenDB::Result::getString(unsigned int fieldidx)
 const unsigned char *TokenDB::Result::getBinary(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getBinary: statement is not valid");
+		TokenDB::logError("Result::getBinary: statement is not valid");
 		return NULL;
 	}
 	if (fieldidx == 0) {
@@ -611,7 +640,7 @@ const unsigned char *TokenDB::Result::getBinary(unsigned int fieldidx)
 size_t TokenDB::Result::getFieldLength(unsigned int fieldidx)
 {
 	if (!isValid()) {
-		logError("Result::getFieldLength: statement is not valid");
+		TokenDB::logError("Result::getFieldLength: statement is not valid");
 		return 0;
 	}
 	if (fieldidx == 0) {
@@ -623,6 +652,16 @@ size_t TokenDB::Result::getFieldLength(unsigned int fieldidx)
 	return (size_t)value;
 }
 
+bool TokenDB::Result::firstRow()
+{
+	return _statement.reset() && _statement.step(NULL);
+}
+
+bool TokenDB::Result::nextRow()
+{
+	return _statement.step(NULL);
+}
+
 /**************************
  * Connection
  **************************/
@@ -630,12 +669,12 @@ size_t TokenDB::Result::getFieldLength(unsigned int fieldidx)
 TokenDB::Connection *TokenDB::Connection::Create(const std::string &dbpath, const std::string &dbname)
 {
 	if (dbpath.length() == 0) {
-		logError("Connection::Create: database path parameter dbpath is empty");
+		TokenDB::logError("Connection::Create: database path parameter dbpath is empty");
 		return NULL;
 	}
 
 	if (dbname.length() == 0) {
-		logError("Connection::Create: database name parameter dbname is empty");
+		TokenDB::logError("Connection::Create: database name parameter dbname is empty");
 		return NULL;
 	}
 
@@ -662,14 +701,14 @@ TokenDB::Statement TokenDB::Connection::prepare(const std::string &format, ...)
 		// long form
 		pstatement = new char[cneeded+1];
 		if (!pstatement) {
-			logError("Connection::prepare: out of memory");
+			TokenDB::logError("Connection::prepare: out of memory");
 			return Statement();
 		}
 		va_start(args, format);
 		bool ok = vsnprintf(pstatement,cneeded+1,format.c_str(),args)==cneeded;
 		va_end(args);
 		if (!ok) {
-			logError("Connection::prepare: vsnprintf error");
+			TokenDB::logError("Connection::prepare: vsnprintf error");
 			delete[] pstatement;
 			return  Statement();
 		}
@@ -686,14 +725,14 @@ TokenDB::Statement TokenDB::Connection::prepare(const std::string &format, ...)
 		delete[] pstatement;
 
 	if (rv != SQLITE_OK) {
-		reportError(_db);
+		reportErrorDB(_db);
 		if (stmt)
 			sqlite3_finalize(stmt);
 		return Statement();
 	}
 
 	if (!stmt) {
-		logError("Connection::prepare: expected sqlite3_prepare_v2 to return a compiled "
+		TokenDB::logError("Connection::prepare: expected sqlite3_prepare_v2 to return a compiled "
 					"statement, got NULL, out of memory ?");
 		return Statement();
 	}
@@ -703,13 +742,14 @@ TokenDB::Statement TokenDB::Connection::prepare(const std::string &format, ...)
 
 TokenDB::Result TokenDB::Connection::perform(TokenDB::Statement &statement)
 {
-	return statement.nextRow() ?  Result(statement) : Result();
+	bool done = true;
+	return (statement.step(&done) && !done) ?  Result(statement) : Result();
 }
 
 bool TokenDB::Connection::execute(TokenDB::Statement &statement)
 {
 	bool done = false;
-	return !statement.nextRow(&done) && done;
+	return !statement.step(&done) && done;
 }
 
 bool TokenDB::Connection::connect()
@@ -723,25 +763,25 @@ bool TokenDB::Connection::connect()
 							 | SQLITE_OPEN_FULLMUTEX,
 							 NULL);
 	if (rv != SQLITE_OK) {
-		reportError(_db);
+		reportErrorDB(_db);
 		return false;
 	}
 
 	int foreignKeyEnabled = 0;
 	rv = sqlite3_db_config(_db,SQLITE_DBCONFIG_ENABLE_FKEY,1,&foreignKeyEnabled);
 	if (rv != SQLITE_OK) {
-		reportError(_db);
+		reportErrorDB(_db);
 		return false;
 	}
 
 	if (foreignKeyEnabled != 1) {
-		logError("Connection::connect: foreign key support not enabled");
+		TokenDB::logError("Connection::connect: foreign key support not enabled");
 		return false;
 	}
 
 	rv = sqlite3_busy_timeout(_db, 15000); // 15 seconds
 	if (rv != SQLITE_OK) {
-		reportError(_db);
+		reportErrorDB(_db);
 		return false;
 	}
 #if HAVE_SQL_TRACE
@@ -762,7 +802,7 @@ bool TokenDB::Connection::tableExists(const std::string &tablename)
 {
 	Statement statement = prepare("select name from sqlite_master where type='table' and name='%s';",tablename.c_str());
 	bool done = false;
-	return statement.nextRow() && !statement.nextRow(&done) && done;
+	return statement.step(&done) && !done && !statement.step(&done) && done;
 }
 
 long long TokenDB::Connection::lastInsertRowId()
