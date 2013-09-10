@@ -90,7 +90,7 @@ namespace snowhouse {
       {
          if (!actual)
          {
-            throw AssertionException("Expected: true\nActual: false");
+            throw AssertionException("Expected: true, Actual: false");
          }
       }
 
@@ -105,8 +105,7 @@ namespace snowhouse {
       {
          std::ostringstream str;
 
-         str << "Expected: " << snowhouse::Stringize(expected) << std::endl;
-         str << "Actual: " << snowhouse::Stringize(actual) << std::endl;
+         str << "Expected: " << snowhouse::Stringize(expected) << ", Actual: " << snowhouse::Stringize(actual) << std::endl;
 
          return str.str();
       }

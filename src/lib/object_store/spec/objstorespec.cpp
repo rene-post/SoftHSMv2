@@ -38,9 +38,14 @@ using namespace igloo;
 
 int main(int argc, const char *argv[])
 {
+	if (argc != 1) {
+		std::cerr << "TestRunner uses a hardwired configuration and expects no commandline arguments." << std::endl;
+		abort();
+	}
+	const char *args[] = {argv[0], "--output=qtcreator"};
+
 	TokenDB::initialize();
-	int rv = TestRunner::RunAllTests(argc, argv);
+	int rv = TestRunner::RunAllTests(2, args);
 	TokenDB::shutdown();
 	return rv;
 }
-
