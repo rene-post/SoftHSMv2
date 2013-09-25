@@ -56,10 +56,10 @@ protected:
 	void openToken();
 public:
 	// Constructor to create a new token
-	FileToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial);
+	FileToken(const std::string &basePath, const std::string &tokenName, const ByteString& label, const ByteString& serial);
 
 	// Constructor to access an existing token
-	FileToken(const std::string basePath, const std::string tokenName);
+	FileToken(const std::string &basePath, const std::string &tokenName);
 
 	// Destructor
 	virtual ~FileToken();

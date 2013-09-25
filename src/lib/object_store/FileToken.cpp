@@ -69,7 +69,7 @@ void FileToken::openToken()
 }
 
 // Constructor to create a new token
-FileToken::FileToken(const std::string basePath, const std::string tokenName, const ByteString &label, const ByteString &serial)
+FileToken::FileToken(const std::string &basePath, const std::string &tokenName, const ByteString &label, const ByteString &serial)
 	: tokenObject(NULL), sync(NULL), tokenDir(NULL), tokenMutex(NULL), tokenPath(basePath + OS_PATHSEP + tokenName)
 {
 	// Create the token object
@@ -118,7 +118,7 @@ FileToken::FileToken(const std::string basePath, const std::string tokenName, co
 }
 
 // Constructor to access an existing token
-FileToken::FileToken(const std::string basePath, const std::string tokenName)
+FileToken::FileToken(const std::string &basePath, const std::string &tokenName)
 	: tokenObject(NULL), sync(NULL), tokenDir(NULL), tokenMutex(NULL), tokenPath(basePath + OS_PATHSEP + tokenName)
 {
 	openToken();
