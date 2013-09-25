@@ -7,7 +7,7 @@
 #ifndef IGLOO_IGLOO_FRAMEWORK_H
 #define IGLOO_IGLOO_FRAMEWORK_H
 
-#define IGLOO_VERSION "1.1.0"
+#define IGLOO_VERSION "1.1.1"
 
 #include <iostream>
 #include <map>
@@ -17,6 +17,7 @@
 #include <list>
 #include <memory>
 #include <algorithm>
+#include <iterator>
 
 #include <igloo/external/snowhouse/snowhouse/snowhouse.h>
 
