@@ -16,8 +16,9 @@ check_PROGRAMS =		objstorespec
 objstorespec_SOURCES =		objstorespec.cpp \
 				ObjectStoreSpec.cpp \
 				ObjectFileSpec.cpp \
-				OSTokenSpec.cpp \
-				TokenDBSpec.cpp
+				TokenDBSpec.cpp \
+				DBObjectSpec.cpp \
+				DBTokenSpec.cpp
 
 objstorespec_LDADD =		../../libsofthsm_convarch.la 
 

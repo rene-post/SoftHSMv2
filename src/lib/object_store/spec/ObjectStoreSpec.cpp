@@ -33,6 +33,8 @@
 #include <igloo/igloo_alt.h>
 using namespace igloo;
 
+#include <cstdio>
+
 #include "ObjectStore.h"
 
 Describe(a_newly_created_object_store)
@@ -40,7 +42,9 @@ Describe(a_newly_created_object_store)
 	void SetUp()
 	{
 		// FIXME: this only works on *NIX/BSD, not on other platforms
-		Assert::That(system("rm -rf testdir && mkdir testdir"), Equals(0));
+		AssertThat(system("rm -rf testdir && mkdir testdir"), Equals(0));
+
+		OSToken::setTokenProvider(TokenProviderFile);
 
 		store = new ObjectStore("./testdir");
 		nulltoken = NULL;
@@ -53,19 +57,19 @@ Describe(a_newly_created_object_store)
 		delete store;
 
 		// FIXME: this only works on *NIX/BSD, not on other platforms
-		Assert::That(system("rm -rf testdir"), Equals(0));
+		AssertThat(system("rm -rf testdir"), Equals(0));
 	}
 
 	It(contains_no_items)
 	{
-		Assert::That(store->getTokenCount(), Equals(0));
+		AssertThat(store->getTokenCount(), Equals(0));
 	}
 
 	It(can_create_a_new_token)
 	{
 		OSToken *token1 = store->newToken(label1);
-		Assert::That(token1, Is().Not().EqualTo( Root().nulltoken));
-		Assert::That(store->getTokenCount(), Is().EqualTo(1));
+		AssertThat(token1, Is().Not().EqualTo( Root().nulltoken));
+		AssertThat(store->getTokenCount(), Is().EqualTo(1));
 	}
 
 	Describe(containing_two_tokens)
@@ -73,25 +77,25 @@ Describe(a_newly_created_object_store)
 		void SetUp()
 		{
 			OSToken* token1 = Root().store->newToken(Root().label1);
-			Assert::That(token1, Is().Not().EqualTo(Root().nulltoken));
-			Assert::That(Root().store->getTokenCount(), Is().EqualTo(1));
+			AssertThat(token1, Is().Not().EqualTo(Root().nulltoken));
+			AssertThat(Root().store->getTokenCount(), Is().EqualTo(1));
 
 			OSToken* token2 = Root().store->newToken(Root().label2);
-			Assert::That(token2, Is().Not().EqualTo(Root().nulltoken));
-			Assert::That(Root().store->getTokenCount(), Is().EqualTo(2));
+			AssertThat(token2, Is().Not().EqualTo(Root().nulltoken));
+			AssertThat(Root().store->getTokenCount(), Is().EqualTo(2));
 		}
 
 		void TearDown()
 		{
 			OSToken* token1 = Root().store->getToken(0);
 			OSToken* token2 = Root().store->getToken(1);
-			Assert::That(Root().store->destroyToken(token1), IsTrue());
-			Assert::That(Root().store->destroyToken(token2), IsTrue());
+			AssertThat(Root().store->destroyToken(token1), IsTrue());
+			AssertThat(Root().store->destroyToken(token2), IsTrue());
 		}
 
 		It(has_two_tokens)
 		{
-			Assert::That(Root().store->getTokenCount(), Is().EqualTo(2));
+			AssertThat(Root().store->getTokenCount(), Is().EqualTo(2));
 		}
 
 		It(can_access_both_tokens)
@@ -100,8 +104,8 @@ Describe(a_newly_created_object_store)
 			OSToken* token1 = Root().store->getToken(0);
 			OSToken* token2 = Root().store->getToken(1);
 
-			Assert::That(token1, Is().Not().EqualTo(Root().nulltoken));
-			Assert::That(token2, Is().Not().EqualTo(Root().nulltoken));
+			AssertThat(token1, Is().Not().EqualTo(Root().nulltoken));
+			AssertThat(token2, Is().Not().EqualTo(Root().nulltoken));
 		}
 
 		It(assigned_labels_correctly_to_tokens)
@@ -112,12 +116,12 @@ Describe(a_newly_created_object_store)
 
 			ByteString retrieveLabel1, retrieveLabel2;
 
-			Assert::That(token1->getTokenLabel(retrieveLabel1), IsTrue());
-			Assert::That(token2->getTokenLabel(retrieveLabel2), IsTrue());
+			AssertThat(token1->getTokenLabel(retrieveLabel1), IsTrue());
+			AssertThat(token2->getTokenLabel(retrieveLabel2), IsTrue());
 
-			Assert::That(Root().label1, Is().EqualTo(retrieveLabel1).Or().EqualTo(retrieveLabel2));
-			Assert::That(Root().label2, Is().EqualTo(retrieveLabel1).Or().EqualTo(retrieveLabel2));
-			Assert::That(Root().label1, Is().Not().EqualTo(Root().label2));
+			AssertThat(Root().label1, Is().EqualTo(retrieveLabel1).Or().EqualTo(retrieveLabel2));
+			AssertThat(Root().label2, Is().EqualTo(retrieveLabel1).Or().EqualTo(retrieveLabel2));
+			AssertThat(Root().label1, Is().Not().EqualTo(Root().label2));
 		}
 
 		It(assigned_a_unique_serial_number_to_each_token)
@@ -128,10 +132,10 @@ Describe(a_newly_created_object_store)
 
 			ByteString retrieveSerial1, retrieveSerial2;
 
-			Assert::That(token1->getTokenSerial(retrieveSerial1), IsTrue());
-			Assert::That(token2->getTokenSerial(retrieveSerial2), IsTrue());
+			AssertThat(token1->getTokenSerial(retrieveSerial1), IsTrue());
+			AssertThat(token2->getTokenSerial(retrieveSerial2), IsTrue());
 
-			Assert::That(retrieveSerial1,Is().Not().EqualTo(retrieveSerial2));
+			AssertThat(retrieveSerial1,Is().Not().EqualTo(retrieveSerial2));
 		}
 	};
 

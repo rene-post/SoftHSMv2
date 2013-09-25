@@ -25,35 +25,34 @@
  */
 
 /*****************************************************************************
- OSTokenSpec.cpp
+ DBTokenSpec.cpp
 
- Contains test cases to test the OS token implementation
+ Contains test cases to test the database token implementation
  *****************************************************************************/
-
-
-
 
 #include <igloo/igloo_alt.h>
 using namespace igloo;
 
-#include "OSToken.h"
+#include "DBToken.h"
+
+#include <cstdio>
 
 #ifndef HAVE_SQLITE3_H
 #error expected sqlite3 to be available
 #endif
 
-Describe(an_ostoken)
+Describe(a_dbtoken)
 {
 	void SetUp()
 	{
 		// FIXME: this only works on *NIX/BSD, not on other platforms
-		Assert::That(system("rm -rf testdir && mkdir testdir"), Equals(0));
+		AssertThat(system("rm -rf testdir && mkdir testdir"), Equals(0));
 	}
 
 	void TearDown()
 	{
 		// FIXME: this only works on *NIX/BSD, not on other platforms
-		Assert::That(system("rm -rf testdir"), Equals(0));
+		AssertThat(system("rm -rf testdir"), Equals(0));
 	}
 
 
@@ -63,11 +62,12 @@ Describe(an_ostoken)
 		ByteString label = "40414243"; // ABCD
 		ByteString serial = "0102030405060708";
 
-		OSToken* newToken = OSToken::createToken("./testdir", "newToken", label, serial);
+		OSToken* newToken = new DBToken("./testdir", "newToken", label, serial);
 
 
-		Assert::That(newToken, Is().Not().EqualTo((OSToken*)NULL));
+		AssertThat(newToken, Is().Not().EqualTo((OSToken*)NULL));
 
+		AssertThat(newToken->isValid(), IsTrue());
 	}
 
 

@@ -58,7 +58,7 @@ Describe(a_token_db)
 
 	It(checks_for_empty_connection_parameters)
 	{
-		TokenDB::setLogErrorHandler(dummy_print);
+		TokenDB::LogErrorHandler eh = TokenDB::setLogErrorHandler(dummy_print);
 
 		TokenDB::Connection *connection = TokenDB::Connection::Create("","TestToken");
 		AssertThat(connection, Is().EqualTo(null));
@@ -69,7 +69,7 @@ Describe(a_token_db)
 		connection = TokenDB::Connection::Create("","");
 		AssertThat(connection, Is().EqualTo(null));
 
-		TokenDB::resetLogErrorHandler();
+		TokenDB::setLogErrorHandler(eh);
 	}
 
 	It(can_be_connected_to_database)
@@ -367,9 +367,9 @@ Describe(a_token_db)
 				AssertThat(result.getLongLong(1), Is().EqualTo(2222));
 
 				// verify that binding to a parameter before resetting the statement will fail.
-				TokenDB::setLogErrorHandler(dummy_print);
+				TokenDB::LogErrorHandler eh = TokenDB::setLogErrorHandler(dummy_print);
 				AssertThat(statement.bindInt(1,3333), IsFalse());
-				TokenDB::resetLogErrorHandler();
+				TokenDB::setLogErrorHandler(eh);
 
 				// reset statement and bind another value to the statement
 				AssertThat(statement.reset(), IsTrue());
@@ -378,7 +378,7 @@ Describe(a_token_db)
 				// perform the update statement again with the newly bound value
 				AssertThat(Parent().connection->execute(statement), IsTrue());
 
-				// reset the retrieve statment and perform it again to get the latest value of the integer attribute
+				// reset the retrieve statement and perform it again to get the latest value of the integer attribute
 				AssertThat(retrieveStmt.reset(), IsTrue());
 				result = Parent().connection->perform(retrieveStmt);
 				AssertThat(result.isValid(), IsTrue());
@@ -433,12 +433,46 @@ Describe(a_token_db)
 				AssertThat(msg, Is().EqualTo(msgstored));
 			}
 
+			It(will_not_insert_non_existing_attribute_on_update)
+			{
+				TokenDB::Statement statement;
+				TokenDB::Result result;
+
+				// Insert new object
+				statement = Parent().connection->prepare(
+							"insert into object default values");
+				AssertThat(statement.isValid(), IsTrue());
+				AssertThat(Parent().connection->execute(statement), IsTrue());
+				long long object_id = Parent().connection->lastInsertRowId();
+				AssertThat(object_id, Is().Not().EqualTo(0));
+
+				// Updating an attribute before it is created will succeed, but will not insert an attribute.
+				statement = Parent().connection->prepare(
+							"update attribute_boolean set value=1 where type=%d and object_id=%lld",
+							1237,
+							object_id);
+				AssertThat(statement.isValid(), IsTrue());
+				AssertThat(Parent().connection->execute(statement), IsTrue());
+
+				// Retrieve the boolean value from the attribute should fail
+				statement = Parent().connection->prepare(
+							"select value from attribute_boolean as t where t.type=%d and t.object_id=%lld",
+							1237,
+							object_id);
+				AssertThat(statement.isValid(), IsTrue());
+				result = Parent().connection->perform(statement);
+				AssertThat(result.isValid(), IsFalse());
+			}
+
 			It(can_update_boolean_attribute_bound_value)
 			{
 				//SQLite doesn't have a boolean data type, use 0 (false) and 1 (true)
 
-				// insert new object
-				TokenDB::Statement statement = Parent().connection->prepare(
+				TokenDB::Statement statement;
+				TokenDB::Result result;
+
+				// Insert new object
+				statement = Parent().connection->prepare(
 							"insert into object default values");
 				AssertThat(statement.isValid(), IsTrue());
 				AssertThat(Parent().connection->execute(statement), IsTrue());
@@ -466,13 +500,13 @@ Describe(a_token_db)
 				// Execute the statement to update the attribute value.
 				AssertThat(Parent().connection->execute(statement), IsTrue());
 
-				// Retrieve the int value from the attribute
+				// Retrieve the boolean value from the attribute
 				statement = Parent().connection->prepare(
 							"select value from attribute_boolean as t where t.type=%d and t.object_id=%lld",
 							1237,
 							object_id);
 				AssertThat(statement.isValid(), IsTrue());
-				TokenDB::Result result = Parent().connection->perform(statement);
+				result = Parent().connection->perform(statement);
 				AssertThat(result.isValid(), IsTrue());
 
 				// check that the retrieved value matches the original value
@@ -523,6 +557,84 @@ Describe(a_token_db)
 				// check that the retrieved value matches the original value.
 				AssertThat(result.getDouble(1), Is().EqualToWithDelta(3333.3333,0.00001));
 			}
+
+			It(supports_transactions)
+			{
+				TokenDB::LogErrorHandler eh = TokenDB::setLogErrorHandler(dummy_print);
+				AssertThat(Parent().connection->rollbackTransaction(), IsFalse());
+				TokenDB::setLogErrorHandler(eh);
+
+				AssertThat(Parent().connection->beginTransactionRW(), IsTrue());
+				AssertThat(Parent().connection->rollbackTransaction(), IsTrue());
+
+				eh = TokenDB::setLogErrorHandler(dummy_print);
+				AssertThat(Parent().connection->commitTransaction(), IsFalse());
+				TokenDB::setLogErrorHandler(eh);
+
+				AssertThat(Parent().connection->beginTransactionRW(), IsTrue());
+				can_update_real_attribute_bound_value();
+				AssertThat(Parent().connection->commitTransaction(), IsTrue());
+			}
+
+			Describe(with_a_second_connection_open)
+			{
+				void SetUp()
+				{
+					connection2 = TokenDB::Connection::Create("./testdir","TestToken");
+					AssertThat(connection2, Is().Not().EqualTo(Root().null));
+					AssertThat(connection2->connect(), IsTrue());
+					connection2->setBusyTimeout(10);
+				}
+
+				void TearDown()
+				{
+					AssertThat(connection2, Is().Not().EqualTo(Root().null));
+					connection2->close();
+					delete connection2;
+				}
+
+				It(handles_nested_transactions)
+				{
+					TokenDB::LogErrorHandler eh = TokenDB::setLogErrorHandler(dummy_print);
+
+					TokenDB::Connection *connection1 = Parent().Parent().connection;
+
+					AssertThat(connection1->beginTransactionRW(), IsTrue());
+
+					AssertThat(connection2->beginTransactionRO(), IsTrue());
+					AssertThat(connection2->rollbackTransaction(),IsTrue());
+					AssertThat(connection2->beginTransactionRW(), IsFalse());
+
+					AssertThat(connection1->commitTransaction(),IsTrue());
+
+					TokenDB::setLogErrorHandler(eh);
+				}
+
+
+				It(supports_transactions_with_other_connections_open)
+				{
+					AssertThat(connection2->beginTransactionRO(),IsTrue());
+
+					Parent().supports_transactions();
+
+					// Retrieve the double value from the attribute
+					TokenDB::Statement statement = connection2->prepare(
+								"select value from attribute_real as t where t.type=%d and t.object_id=%lld",
+								1238,
+								Parent().Parent().connection->lastInsertRowId());
+					AssertThat(statement.isValid(), IsTrue());
+					TokenDB::Result result = connection2->perform(statement);
+					AssertThat(result.isValid(), IsTrue());
+
+					// check that the retrieved value matches the original value.
+					AssertThat(result.getDouble(1), Is().EqualToWithDelta(3333.3333,0.00001));
+
+					AssertThat(connection2->commitTransaction(), IsTrue());
+				}
+
+
+				TokenDB::Connection *connection2;
+			};
 		};
 
 		TokenDB::Connection *connection;
