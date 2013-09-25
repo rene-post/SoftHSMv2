@@ -175,7 +175,7 @@ void SessionObject::discardAttributes()
 }
 
 // These functions are just stubs for session objects
-bool SessionObject::startTransaction()
+bool SessionObject::startTransaction(Access access)
 {
 	return true;
 }

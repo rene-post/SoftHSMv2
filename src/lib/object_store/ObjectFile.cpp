@@ -460,7 +460,7 @@ std::string ObjectFile::getFilename() const
 // persisted in one go.
 //
 // N.B.: Starting a transaction locks the object!
-bool ObjectFile::startTransaction()
+bool ObjectFile::startTransaction(Access access)
 {
 	MutexLocker lock(objectMutex);
 
