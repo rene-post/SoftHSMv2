@@ -36,30 +36,135 @@
 #include "log.h"
 #include "OSAttributes.h"
 #include "OSAttribute.h"
-#include "ObjectFile.h"
-#include "Directory.h"
-#include "UUID.h"
-#include "IPCSignal.h"
+#include "OSPathSep.h"
+
 #include "cryptoki.h"
 #include "DBToken.h"
-#include "OSPathSep.h"
+#include "DBObject.h"
+#include "TokenDB.h"
+
 #include <vector>
 #include <string>
 #include <set>
 #include <map>
 #include <list>
-#include <stdio.h>
+#include <cstdio>
+#include <sys/stat.h>
 
-#include <sqlite3.h>
+const char * const DBTOKEN_FILE = "sqlite3.db";
+const CK_ULONG DBTOKEN_OBJECT_TOKENINFO = 1;
 
-// Constructor
-DBToken::DBToken(const std::string basePath, const std::string tokenName)
+// Constructor for creating a new token.
+DBToken::DBToken(const std::string &baseDir, const std::string &tokenName, const ByteString &label, const ByteString &serial)
+	: _connection(NULL)
+{
+	std::string tokenDir = baseDir + OS_PATHSEP + tokenName;
+	std::string tokenPath = tokenDir + OS_PATHSEP + DBTOKEN_FILE;
+
+	// Refuse to open an already existing database.
+	FILE *f = fopen(tokenPath.c_str(),"r");
+	if (f)
+	{
+		fclose(f);
+		ERROR_MSG("Refusing to overwrite and existing database at \"%s\"", tokenPath.c_str());
+		return;
+	}
+
+	// First create the directory for the token, we expect basePath to already exist
+	if (mkdir(tokenDir.c_str(), S_IFDIR | S_IRWXU))
+	{
+		ERROR_MSG("Unable to create directory \"%s\"", tokenDir.c_str());
+		return;
+	}
+
+	// Create
+	_connection = TokenDB::Connection::Create(tokenDir, DBTOKEN_FILE);
+	if (_connection == NULL)
+	{
+		ERROR_MSG("Failed to create a database connection for \"%s\"", tokenPath.c_str());
+		return;
+	}
+
+	if (!_connection->connect())
+	{
+		delete _connection;
+		_connection = NULL;
+
+		ERROR_MSG("Failed to connect to the database at \"%s\"", tokenPath.c_str());
+
+		// Now remove the token directory
+		if (remove(tokenDir.c_str()))
+		{
+			ERROR_MSG("Failed to remove the token directory \"%s\"", tokenDir.c_str());
+		}
+
+		return;
+	}
+
+	// Create a DBObject for the established connection to the database.
+	DBObject tokenObject(_connection);
+
+	// First create the tables that support storage of object attributes and then insert the object containing
+	// the token info into the database.
+	if (!tokenObject.createTables() || !tokenObject.insert() || tokenObject.objectId()!=DBTOKEN_OBJECT_TOKENINFO)
+	{
+		tokenObject.dropConnection();
+
+		_connection->close();
+		delete _connection;
+		_connection = NULL;
+
+		ERROR_MSG("Failed to create tables for storing objects in database at \"%s\"", tokenPath.c_str());
+		return;
+	}
+
+	// Set the initial attributes
+	CK_ULONG flags =
+		CKF_RNG |
+		CKF_LOGIN_REQUIRED | // FIXME: check
+		CKF_RESTORE_KEY_NOT_NEEDED |
+		CKF_TOKEN_INITIALIZED |
+		CKF_SO_PIN_LOCKED |
+		CKF_SO_PIN_TO_BE_CHANGED;
+
+	OSAttribute tokenLabel(label);
+	OSAttribute tokenSerial(serial);
+	OSAttribute tokenFlags(flags);
+
+	if (!tokenObject.setAttribute(CKA_OS_TOKENLABEL, tokenLabel) ||
+		!tokenObject.setAttribute(CKA_OS_TOKENSERIAL, tokenSerial) ||
+		!tokenObject.setAttribute(CKA_OS_TOKENFLAGS, tokenFlags))
+	{
+		_connection->close();
+		delete _connection;
+		_connection = NULL;
+
+		// Now remove the token file
+		if (remove(tokenPath.c_str()))
+		{
+			ERROR_MSG("Failed to remove the token file at \"%s\"", tokenPath.c_str());
+		}
+
+		// Now remove the token directory
+		if (remove(tokenDir.c_str()))
+		{
+			ERROR_MSG("Failed to remove the token directory at \"%s\"", tokenDir.c_str());
+		}
+		return;
+	}
+
+	// Success!
+}
+
+// Constructor for accessing an existing token.
+DBToken::DBToken(const std::string &baseDir, const std::string &tokenName)
 {
 }
 
 // Destructor
 DBToken::~DBToken()
 {
+	delete _connection;
 }
 
 // Set the SO PIN
@@ -124,6 +229,11 @@ void DBToken::getObjects(std::set<OSObject*> &objects)
 OSObject *DBToken::createObject()
 {
 	return NULL;
+}
+
+bool DBToken::deleteObject(OSObject *object)
+{
+	return false;
 }
 
 // Checks if the token is consistent

@@ -36,73 +36,76 @@
 #define _SOFTHSM_V2_DBTOKEN_H
 
 #include "config.h"
+#include "ByteString.h"
 #include "OSAttribute.h"
+#include "cryptoki.h"
 #include "OSObject.h"
 #include "OSToken.h"
-#include "Directory.h"
-#include "UUID.h"
-#include "IPCSignal.h"
-#include "MutexFactory.h"
-#include "cryptoki.h"
+
 #include <string>
 #include <set>
-#include <map>
-#include <list>
+
+namespace TokenDB { class Connection; }
 
 class DBToken : public OSToken
 {
-private:
-	// Constructor
-	DBToken(const std::string basePath, const std::string tokenName);
+public:
+	// Constructor to create a new token
+	DBToken(const std::string &baseDir, const std::string &tokenName, const ByteString& label, const ByteString& serial);
 
-	// Set the SO PIN
-	bool setSOPIN(const ByteString& soPINBlob);
-
-	// Get the SO PIN
-	bool getSOPIN(ByteString& soPINBlob);
-
-	// Set the user PIN
-	bool setUserPIN(ByteString userPINBlob);
-
-	// Get the user PIN
-	bool getUserPIN(ByteString& userPINBlob);
-
-	// Get the token flags
-	bool getTokenFlags(CK_ULONG& flags);
-
-	// Set the token flags
-	bool setTokenFlags(const CK_ULONG flags);
-
-	// Retrieve the token label
-	bool getTokenLabel(ByteString& label);
-
-	// Retrieve the token serial
-	bool getTokenSerial(ByteString& serial);
-
-	// Retrieve objects
-	std::set<OSObject*> getObjects();
-
-	// Insert objects into the given set
-	void getObjects(std::set<OSObject*> &objects);
-
-	// Create a new object
-	OSObject* createObject();
-
-	// Delete an object
-	bool deleteObject(OSObject* object);
+	// Constructor to access an existing token
+	DBToken(const std::string &baseDir, const std::string &tokenName);
 
 	// Destructor
 	virtual ~DBToken();
 
+	// Set the SO PIN
+	virtual bool setSOPIN(const ByteString& soPINBlob);
+
+	// Get the SO PIN
+	virtual bool getSOPIN(ByteString& soPINBlob);
+
+	// Set the user PIN
+	virtual bool setUserPIN(ByteString userPINBlob);
+
+	// Get the user PIN
+	virtual bool getUserPIN(ByteString& userPINBlob);
+
+	// Get the token flags
+	virtual bool getTokenFlags(CK_ULONG& flags);
+
+	// Set the token flags
+	virtual bool setTokenFlags(const CK_ULONG flags);
+
+	// Retrieve the token label
+	virtual bool getTokenLabel(ByteString& label);
+
+	// Retrieve the token serial
+	virtual bool getTokenSerial(ByteString& serial);
+
+	// Retrieve objects
+	virtual std::set<OSObject*> getObjects();
+
+	// Insert objects into the given set
+	virtual void getObjects(std::set<OSObject*> &objects);
+
+	// Create a new object
+	virtual OSObject* createObject();
+
+	// Delete an object
+	virtual bool deleteObject(OSObject* object);
+
 	// Checks if the token is consistent
-	bool isValid();
+	virtual bool isValid();
 
 	// Invalidate the token (for instance if it is deleted)
-	void invalidate();
+	virtual void invalidate();
 
 	// Delete the token
-	bool clearToken();
+	virtual bool clearToken();
 
+private:
+	TokenDB::Connection *_connection;
 };
 
 #endif // !_SOFTHSM_V2_DBTOKEN_H

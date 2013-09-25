@@ -56,20 +56,18 @@ typedef int (*LogErrorHandler)(const char *format, va_list ap);
 
 // Set an alternative for vprintf to log the actual errors.
 // Set to NULL to disable logging al together.
-void setLogErrorHandler(LogErrorHandler handler);
+LogErrorHandler setLogErrorHandler(LogErrorHandler handler);
 
 // Set the log error handler back to the default value that logs to stdout.
 void resetLogErrorHandler();
 
 // Responsible for holding on to a prepared statement.
 // After a prepared statement has been used it can be reused when the same query is performed again.
-class _Statement;
-
 class Statement {
 friend class Result;
 public:
 	Statement();
-	Statement(_Statement *statement);
+	Statement(sqlite3_stmt *statement);
 	Statement(const Statement &statement);
 	void operator=(const Statement &statement);
 
@@ -88,10 +86,20 @@ public:
 	bool bindText(int index, const char *value, int n, void(*destruct)(void*));
 	bool bindZeroBlob(int index, int n);
 
+	// Reset a prepared statement
 	bool reset();
-	bool step(bool *done);
+
+	// Perform a single step of the prepared statement.
+	enum ReturnCode {
+		ReturnCodeRow,
+		ReturnCodeDone,
+		ReturnCodeError
+	};
+
+	ReturnCode step();
 private:
-	_Statement *_statement;
+	class Private;
+	Private *_private;
 };
 
 // Responsible for providing access to the result set of a query.
@@ -113,17 +121,21 @@ public:
 	float getFloat(unsigned int fieldidx);
 	double getDouble(unsigned int fieldidx);
 	int getInt(unsigned int fieldidx);
+	unsigned int getUInt(unsigned int fieldidx);
 	long long getLongLong(unsigned int fieldidx);
 	unsigned long long getULongLong(unsigned int fieldidx);
-	unsigned int getUInt(unsigned int fieldidx);
+
 	const char *getString(unsigned int fieldidx);
 	const unsigned char *getBinary(unsigned int fieldidx);
 	size_t getFieldLength(unsigned int fieldidx);
 
+	// Position the result on the first row again.
 	bool firstRow();
+
+	// Position the result on the next row.
 	bool nextRow();
 private:
-	Statement _statement;
+	Statement::Private *_private;
 };
 
 // Responsible for connection to the database and for managing prepared statements.
@@ -136,12 +148,20 @@ public:
 	Result perform(Statement &statement);
 	bool execute(Statement &statement);
 
-	bool connect();
+	bool connect(const char *connectionLabel = NULL);
 	void close();
 
 	bool tableExists(const std::string &tablename);
 	long long lastInsertRowId();
 
+	bool inTransaction();
+	bool beginTransactionRW();
+	bool beginTransactionRO();
+	bool commitTransaction();
+	bool rollbackTransaction();
+
+	// Set the busy timeout that the database layer will wait for a database lock to become available.
+	bool setBusyTimeout(int ms);
 private:
 	std::string _dbpath;
 	std::string _dbname;

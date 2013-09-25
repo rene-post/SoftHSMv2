@@ -15,11 +15,12 @@ libsofthsm_objectstore_la_SOURCES =	ObjectStore.cpp \
 					OSAttribute.cpp \
 					OSToken.cpp \
 					FileToken.cpp \
-					DBToken.cpp \
 					ObjectFile.cpp \
 					SessionObject.cpp \
 					SessionObjectStore.cpp \
 					FindOperation.cpp \
+					DBToken.cpp \
+					DBObject.cpp \
 					TokenDB.cpp
 
 libsofthsm_objectstore_la_LDFLAGS =	@SQLITE3_LIBS@

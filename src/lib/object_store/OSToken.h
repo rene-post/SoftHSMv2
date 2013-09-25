@@ -44,12 +44,18 @@
 #include <string>
 #include <set>
 
+enum TokenProvider {
+	TokenProviderFile,
+	TokenProviderDB
+};
+
 class OSToken
 {
 public:
 	// Create a new token
-	static OSToken* createToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial);
-	static OSToken* accessToken(const std::string basePath, const std::string tokenName);
+	static TokenProvider setTokenProvider(const TokenProvider value);
+	static OSToken* createToken(const std::string &basePath, const std::string &tokenName, const ByteString& label, const ByteString& serial);
+	static OSToken* accessToken(const std::string &basePath, const std::string &tokenName);
 
 	// Destructor
 	virtual ~OSToken();

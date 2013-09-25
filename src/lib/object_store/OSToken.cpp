@@ -48,9 +48,17 @@
 #include <list>
 #include <cstdio>
 
+static TokenProvider static_TokenProvider = TokenProviderFile;
 
 // Create a new token
-/*static*/ OSToken* OSToken::createToken(const std::string basePath, const std::string tokenName, const ByteString& label, const ByteString& serial)
+/*static*/ TokenProvider OSToken::setTokenProvider(const TokenProvider value)
+{
+	TokenProvider previous_TokenProvider = static_TokenProvider;
+	static_TokenProvider= value;
+	return previous_TokenProvider;
+}
+
+/*static*/ OSToken* OSToken::createToken(const std::string &basePath, const std::string &tokenName, const ByteString& label, const ByteString& serial)
 {
 	Directory baseDir(basePath);
 
@@ -65,7 +73,10 @@
 		return NULL;
 	}
 
-	OSToken *token = new FileToken(basePath, tokenName, label, serial);
+	OSToken *token = static_TokenProvider==TokenProviderDB
+			? static_cast<OSToken *>(new DBToken(basePath, tokenName, label, serial))
+			: static_cast<OSToken *>(new FileToken(basePath, tokenName, label, serial));
+
 	if (!token->isValid())
 	{
 		delete token;
@@ -77,9 +88,11 @@
 	return token;
 }
 
-/*static*/ OSToken *OSToken::accessToken(const std::string basePath, const std::string tokenName)
+/*static*/ OSToken *OSToken::accessToken(const std::string &basePath, const std::string &tokenName)
 {
-	return new FileToken(basePath, tokenName);
+	return static_TokenProvider==TokenProviderDB
+		? static_cast<OSToken *>(new DBToken(basePath, tokenName))
+		: static_cast<OSToken *>(new FileToken(basePath, tokenName));
 }
 
 // Destructor
